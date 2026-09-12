@@ -1,40 +1,34 @@
-#PowerChess API
-#Șah cu superputeri — REST API complet implementat în PHP Slim 4 cu SQLite
+#PowerChess API #Chess with Superpowers — Fully Implemented REST API in PHP Slim 4 with SQLite
 
+#Description
 
-#Descriere
+PowerChess is a chess game where special powers randomly appear on the board. Pieces can collect and use these powers to modify the rules of movement. The project exposes a fully documented REST API using OpenAPI 3.0.1.
 
-PowerChess este un joc de șah în care apar aleatoriu puteri speciale pe tablă. Piesele le pot colecta și folosi pentru a modifica regulile de mișcare. Proiectul expune un REST API complet documentat cu OpenAPI 3.0.1.
+#Technologies
 
+| Technology     | Version | Role                     |
+| -------------- | ------- | ------------------------ |
+| PHP            | 8.x     | Server                   |
+| Slim           | 4.x     | REST framework / routing |
+| SQLite         | 3       | Database                 |
+| PDO            | —       | Database abstraction     |
+| Apache (XAMPP) | 3.3.0   | Web server               |
+| OpenAPI        | 3.0.1   | API specification        |
+| Postman        | —       | API testing (Gherkin)    |
+| HTML/JS        | —       | Interactive frontend UI  |
 
+#Project Structure
 
-#Tehnologii
-
- Tehnologie  Versiune  Rol 
-
-  PHP  8.x  Server REST 
- Slim 4  4.x  Framework routing 
- SQLite  3  Baza de date 
-PDO  Abstractizare BD 
-Apache (XAMPP)  3.3.0  Server web producție 
-OpenAPI  3.0.1  Specificație API 
-Postman  Testare API (Gherkin) 
-HTML/JS  UI frontend interactiv 
-
-
-
-#Structura proiectului
-
-
+```text
 powerchess-server/
 ├── public/
-│   ├── index.php          # Entry point — toate rutele API
-│   ├── admin.php          # Panou de administrare
-│   ├── game.html          # UI joc
-│   ├── menu.html          # Meniu principal
-│   ├── ui.html            # API Explorer
-│   ├── powerchess.db      # Baza de date SQLite
-│   └── .htaccess          # Routing Apache
+│   ├── index.php              # Entry point — all API routes
+│   ├── admin.php              # Administration panel
+│   ├── game.html              # Game UI
+│   ├── menu.html              # Main menu
+│   ├── ui.html                # API Explorer
+│   ├── powerchess.db          # SQLite database
+│   └── .htaccess              # Apache routing
 ├── src/Controllers/
 │   ├── BoardController.php
 │   ├── GameController.php
@@ -42,124 +36,125 @@ powerchess-server/
 │   ├── PieceController.php
 │   ├── PlayerController.php
 │   └── PowerController.php
-├── vendor/                # Dependente Composer
+├── vendor/                    # Composer dependencies
 ├── composer.json
-├── powerchess-openapi.yaml    # Specificatie OpenAPI 3.0.1
-└── PowerChess_Postman.json    # Colectie Postman cu scenarii Gherkin
+├── powerchess-openapi.yaml    # OpenAPI 3.0.1 specification
+└── PowerChess_Postman.json    # Postman collection with Gherkin scenarios
 ```
 
----
+#Getting Started
 
-# Pornire
+## Option 1 — XAMPP
 
-# Varianta 1 — XAMPP 
+1. Copy the `powerchess-server` folder into `C:\xampp\htdocs\` or configure a Virtual Host.
+2. Open the XAMPP Control Panel and start Apache.
+3. Access: `http://powerchess.local`
 
-1. Copiază folderul `powerchess-server` în `C:\xampp\htdocs\` sau configurează un Virtual Host
-2. Deschide XAMPP Control Panel și pornește Apache
-3. Accesează: http://powerchess.local
+### Option 2 — PHP Built-in Server
 
-### Varianta 2 — PHP built-in server
-
-bash
+```bash
 cd powerchess-server/public
 php -S localhost:8080
+```
 
-
-Accesează: http://localhost:8080
+Access: `http://localhost:8080`
 
 #Endpoint
 
-**Base URL:** http://powerchess.local/menu.html sau http://localhost:8080
+**Base URL:** `http://powerchess.local/menu.html` or `http://localhost:8080`
 
 #Players
-| Metodă | Endpoint | Descriere |
-|---|---|---|
-| POST | /players | Creează jucător nou |
-| GET | /players/{playerId} | Detalii jucător |
+
+| Method | Endpoint              | Description          |
+| ------ | --------------------- | -------------------- |
+| POST   | `/players`            | Creates a new player |
+| GET    | `/players/{playerId}` | Gets player details  |
 
 #Games
-| Metodă | Endpoint | Descriere |
-|---|---|---|
-| POST | `/games` | Creează partidă nouă |
-| GET | `/games` | Listează partide (filtru: `?status=active`) |
-| GET | `/games/{gameId}` | Detalii partidă |
-| DELETE | `/games/{gameId}` | Șterge partidă |
+
+| Method | Endpoint          | Description                            |
+| ------ | ----------------- | -------------------------------------- |
+| POST   | `/games`          | Creates a new game                     |
+| GET    | `/games`          | Lists games (filter: `?status=active`) |
+| GET    | `/games/{gameId}` | Gets game details                      |
+| DELETE | `/games/{gameId}` | Deletes a game                         |
 
 #Board & Pieces
-| Metodă | Endpoint | Descriere |
-|---|---|---|
-| GET | `/games/{gameId}/board` | Starea tablei 8x8 |
-| GET | `/games/{gameId}/pieces` | Liste piese (filtru: `?color=white`) |
-| GET | `/games/{gameId}/pieces/{pieceId}` | Detalii piesă |
-| PUT | `/games/{gameId}/pieces/{pieceId}` | Promovează pion la regină |
+
+| Method | Endpoint                           | Description                           |
+| ------ | ---------------------------------- | ------------------------------------- |
+| GET    | `/games/{gameId}/board`            | Gets the current 8x8 board state      |
+| GET    | `/games/{gameId}/pieces`           | Lists pieces (filter: `?color=white`) |
+| GET    | `/games/{gameId}/pieces/{pieceId}` | Gets piece details                    |
+| PUT    | `/games/{gameId}/pieces/{pieceId}` | Promotes a pawn to a queen            |
 
 #Moves
-| Metodă | Endpoint | Descriere |
-|---|---|---|
-| GET | `/games/{gameId}/moves` | Istoric mutări |
-| POST | `/games/{gameId}/moves` | Efectuează mutare |
-| GET | `/games/{gameId}/moves/valid` | Mutări valide pentru o piesă (`?pieceId=`) |
+
+| Method | Endpoint                      | Description                                |
+| ------ | ----------------------------- | ------------------------------------------ |
+| GET    | `/games/{gameId}/moves`       | Gets move history                          |
+| POST   | `/games/{gameId}/moves`       | Makes a move                               |
+| GET    | `/games/{gameId}/moves/valid` | Gets valid moves for a piece (`?pieceId=`) |
 
 #Powers
-| Metodă | Endpoint | Descriere |
-|---|---|---|
-| GET | `/games/{gameId}/powers` | Puteri active pe tablă |
-| POST | `/powers/spawn` | Generează putere nouă |
-| POST | `/powers/{powerId}/collect` | Colectează putere |
-| POST | `/powers/{powerId}/use` | Folosește putere colectată |
 
+| Method | Endpoint                    | Description                     |
+| ------ | --------------------------- | ------------------------------- |
+| GET    | `/games/{gameId}/powers`    | Gets active powers on the board |
+| POST   | `/powers/spawn`             | Generates a new power           |
+| POST   | `/powers/{powerId}/collect` | Collects a power                |
+| POST   | `/powers/{powerId}/use`     | Uses a collected power          |
 
+#HTTP Status Codes
 
-#Coduri HTTP
+| Code | Meaning                                 |
+| ---- | --------------------------------------- |
+| 200  | OK — request successfully processed     |
+| 201  | Created — resource successfully created |
+| 204  | No Content — deletion successful        |
+| 400  | Bad Request — invalid data              |
+| 404  | Not Found — resource does not exist     |
+| 409  | Conflict — invalid move                 |
+| 500  | Internal Server Error                   |
 
-| Cod | Semnificație |
-|---|---|
-| 200 | OK — cerere procesată |
-| 201 | Created — resursă creată |
-| 204 | No Content — ștergere reușită |
-| 400 | Bad Request — date invalide |
-| 404 | Not Found — resursă inexistentă |
-| 409 | Conflict — mutare invalidă |
-| 500 | Internal Server Error |
+#Special Powers (PowerType)
 
+| Power         | Effect                                            |
+| ------------- | ------------------------------------------------- |
+| `teleport`    | Moves a piece to any unoccupied cell on the board |
+| `extra_move`  | Allows an additional move during the same turn    |
+| `shield`      | Protects a piece from being captured once         |
+| `freeze`      | Freezes an opponent's piece for one turn          |
+| `double_jump` | Allows jumping over pieces (like a knight)        |
+| `rule_break`  | Allows a move that would normally be illegal      |
 
+#Postman Testing
 
-#Puteri Speciale (PowerType)
+1. Import `PowerChess_Postman.json` into Postman.
+2. Import the environment variables and create a **New Environment** with:
 
-| Putere | Efect |
-|---|---|
-| teleport | Mută piesa în orice celulă liberă de pe tablă |
-| extra_move | Permite o mutare suplimentară în aceeași tură |
-| shield | Protejează piesa de o captură (o singură dată) |
-| freeze | Îngheață o piesă adversă timp de un tur |
-| double_jump | Permite sărirea peste piese (ca un cal) |
-| rule_break | Permite o mutare ilegală standard |
+   * `baseUrl` = `http://powerchess.local`
+   * `gameId` = ID returned after `POST /games`
+   * `playerId`, `pieceId`, `powerId` = IDs from the corresponding responses
+3. Select **New Environment** from the dropdown in the top-right corner.
+4. Run the requests in order: **Players → Games → Board → Pieces → Moves → Powers**
 
-
-#Testare cu Postman
-
-1. Importă `PowerChess_Postman.json` în Postman
-2. Importă variabilele de mediu și setează **New Environment** cu:
-   - `baseUrl` = `http://powerchess.local`
-   - `gameId` = ID-ul returnat după POST /games
-   - `playerId`, `pieceId`, `powerId` = IDs din răspunsuri
-3. Selectează **New Environment** în dropdown-ul din dreapta sus
-4. Rulează în ordine: Players → Games → Board → Pieces → Moves → Powers
-
-Scenariile sunt scrise în format **Gherkin** (Given / When / Then) cu validare automată prin Postman Scripts.
-
-
+The scenarios are written in **Gherkin** format (`Given / When / Then`) with automatic validation through Postman Scripts.
 
 #Admin Panel
 
-Accesează http://powerchess.local/admin.php pentru a vizualiza:
-- Statistici globale (jucători, partide, mutări)
-- Toți jucătorii înregistrați
-- Toate partidele cu statusul lor
-- Puterile generate recent
-- Mutările recente
+Access `http://powerchess.local/admin.php` to view:
+
+* Global statistics (players, games, moves)
+* All registered players
+* All games and their current status
+* Recently generated powers
+* Recent moves
+
+The complete OpenAPI 3.0.1 specification can be found in the `powerchess-openapi.yaml` file.
+
+It can be viewed interactively at [Swagger Editor](https://editor.swagger.io) by importing the file.
 
 
-Specificația completă OpenAPI 3.0.1 se găsește în fișierul `powerchess-openapi.yaml`.
+OpenAPI 3.0.1
 
-Poate fi vizualizată interactiv la [https://editor.swagger.io](https://editor.swagger.io) prin import.
