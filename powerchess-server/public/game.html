@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerChess - Play</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:wght@400;600&display=swap');
+
+  :root {
+    --gold: #c9a84c;
+    --dark: #0a0a0f;
+    --dark-2: #12121a;
+    --dark-3: #1a1a28;
+    --border: #2a2a45;
+    --text: #e8e0d0;
+    --text-dim: #8a8070;
+    --cell-light: #e8d5b7;
+    --cell-dark: #b58863;
+    --check-glow: rgba(220,38,38,0.6);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: 'Crimson Text', Georgia, serif; background: var(--dark); color: var(--text); min-height: 100vh; overflow-y: auto; }
+
+  /* Legend styles */
+  .legend-list { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; background: var(--dark-3); border-radius: 6px; border: 1px solid var(--border); }
+  .legend-icon { font-size: 22px; flex-shrink: 0; line-height: 1.2; }
+  .legend-text { flex: 1; }
+  .legend-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 1px; margin-bottom: 2px; }
+  .legend-desc { font-size: 11px; color: var(--text-dim); line-height: 1.3; }
+
+  header {
+    background: var(--dark-2);
+    border-bottom: 2px solid var(--gold);
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-family: 'Cinzel', serif; font-size: 20px; color: var(--gold); letter-spacing: 3px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .status { font-size: 12px; color: var(--text-dim); }
+  .status.online { color: #86efac; }
+  .status.offline { color: #fca5a5; }
+  .back-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: 1px;
+    color: var(--text-dim); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 10px; transition: all 0.2s;
+  }
+  .back-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 280px 1fr 280px; gap: 20px; }
+
+  .panel { background: var(--dark-2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .panel h2 { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: 2px; text-transform: uppercase; }
+
+  /* BOARD */
+  .board-panel { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+  .board-wrap { position: relative; }
+  .board { display: grid; grid-template-columns: repeat(8, 70px); grid-template-rows: repeat(8, 70px); border: 3px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.6); }
+  .cell { width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: filter 0.1s; }
+  .cell.light { background: var(--cell-light); }
+  .cell.dark  { background: var(--cell-dark); }
+  .cell.selected { box-shadow: inset 0 0 0 3px #f59e0b; }
+  .cell.valid-move::after { content: ''; position: absolute; width: 26px; height: 26px; background: rgba(34,197,94,0.5); border-radius: 50%; pointer-events: none; }
+  .cell.valid-move.has-piece::after { content: ''; position: absolute; inset: 0; border-radius: 0; background: transparent; box-shadow: inset 0 0 0 3px rgba(34,197,94,0.7); border-radius: 0; width: auto; height: auto; }
+  .cell.in-check { box-shadow: inset 0 0 0 4px #dc2626; background: rgba(220,38,38,0.35) !important; animation: checkPulse 1s ease-in-out infinite; }
+  @keyframes checkPulse { 0%,100% { box-shadow: inset 0 0 0 4px #dc2626; } 50% { box-shadow: inset 0 0 0 4px #dc2626, 0 0 20px rgba(220,38,38,0.5); } }
+  .cell:hover { filter: brightness(1.1); }
+  .cell .power-icon { position: absolute; bottom: 2px; right: 2px; font-size: 18px; pointer-events: none; opacity: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.8)); animation: powerPulse 2s ease-in-out infinite; }
+  @keyframes powerPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+  /* ACTIVE POWERS USE PANEL */
+  .collected-powers { margin-top: 14px; }
+  .collected-power-btn {
+    width: 100%; padding: 10px 12px; margin-bottom: 8px;
+    background: var(--dark-3); border-radius: 6px;
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 12px; cursor: pointer; text-align: left;
+    transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+  }
+  .collected-power-btn:hover { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+  .collected-power-btn.active-power { border-color: #f59e0b; background: rgba(245,158,11,0.15); }
+  .collected-power-btn .pw-emoji { font-size: 20px; }
+  .collected-power-btn .pw-info { flex: 1; }
+  .collected-power-btn .pw-name { font-weight: bold; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; }
+  .collected-power-btn .pw-desc { color: var(--text-dim); font-size: 10px; margin-top: 2px; }
+  .collected-power-btn .pw-who { font-size: 10px; color: var(--gold); margin-top: 2px; }
+
+  /* teleport mode */
+  .cell.teleport-target { cursor: crosshair !important; }
+  .cell.teleport-target::before { content: ''; position: absolute; inset: 0; background: rgba(168,85,247,0.25); border: 2px dashed #a855f7; pointer-events: none; }
+  .cell.teleport-target:hover::before { background: rgba(168,85,247,0.4); }
+
+  /* shield highlight */
+  .cell.shielded-piece { box-shadow: inset 0 0 0 3px #22c55e; }
+
+  /* frozen piece */
+  .cell.frozen-piece { box-shadow: inset 0 0 0 3px #06b6d4; background: rgba(6,182,212,0.18) !important; }
+  .cell.frozen-piece::after { content: '❄'; position: absolute; top: 2px; left: 3px; font-size: 13px; pointer-events: none; opacity: 0.9; }
+
+  /* freeze target (selectabil în freeze mode) */
+  .cell.freeze-target { cursor: crosshair !important; }
+  .cell.freeze-target::before { content: ''; position: absolute; inset: 0; background: rgba(6,182,212,0.2); border: 2px dashed #06b6d4; pointer-events: none; }
+  .cell.freeze-target:hover::before { background: rgba(6,182,212,0.4); }
+
+  /* freeze banner */
+  .freeze-banner { display:none; width:100%; padding:8px; border-radius:6px; text-align:center; font-family:'Cinzel',serif; font-size:13px; letter-spacing:2px; margin-bottom:12px; font-weight:700; }
+  .freeze-banner.active { display:block; background:rgba(6,182,212,0.2); border:1px solid #06b6d4; color:#67e8f9; }
+  .row-label { position: absolute; left: -20px; font-size: 11px; color: var(--text-dim); font-weight: bold; display: flex; align-items: center; height: 70px; }
+  .coords { display: flex; margin-top: 4px; padding-left: 0; }
+  .coord { width: 70px; text-align: center; font-size: 11px; color: var(--text-dim); font-weight: bold; }
+
+  /* GAME INFO */
+  .game-info { width: 100%; margin-bottom: 14px; padding: 12px 16px; background: var(--dark-3); border-radius: 6px; border-left: 3px solid var(--gold); }
+  .game-info div { margin-bottom: 4px; font-size: 13px; }
+  .gi-label { color: var(--text-dim); display: inline-block; width: 110px; font-size: 12px; }
+  .gi-value { color: var(--text); font-weight: 600; }
+  .turn-badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; font-family: 'Cinzel', serif; letter-spacing: 1px; }
+  .turn-white { background: #f0ece0; color: #111; }
+  .turn-black { background: #1a1a2e; color: #e0e0e0; border: 1px solid #444; }
+
+  /* CHECK / CHECKMATE overlay */
+  .check-banner {
+    display: none; width: 100%; padding: 10px; border-radius: 6px;
+    text-align: center; font-family: 'Cinzel', serif; font-size: 15px;
+    letter-spacing: 2px; margin-bottom: 12px; font-weight: 700;
+  }
+  .check-banner.check { display: block; background: rgba(220,38,38,0.2); border: 1px solid #dc2626; color: #ef4444; }
+  .check-banner.checkmate { display: block; background: rgba(220,38,38,0.3); border: 2px solid #dc2626; color: #fff; font-size: 18px; }
+  .check-banner.stalemate { display: block; background: rgba(100,100,100,0.2); border: 1px solid #666; color: #aaa; }
+
+  /* PLAYERS */
+  .player-card { padding: 12px; background: var(--dark-3); border-radius: 6px; margin-bottom: 10px; border-left: 3px solid var(--border); transition: all 0.3s; }
+  .player-card.white-player { border-left-color: #e8e0d0; }
+  .player-card.black-player { border-left-color: #4a4a6a; }
+  .player-card.active-turn { background: rgba(201,168,76,0.08); border-left-color: var(--gold); }
+  .player-card.in-check-player { background: rgba(220,38,38,0.1); border-left-color: #dc2626; }
+  .pc-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--text); margin-bottom: 3px; }
+  .pc-stats { font-size: 12px; color: var(--text-dim); }
+  .pc-status { font-size: 11px; margin-top: 4px; font-weight: 600; }
+  .pc-status.check { color: #ef4444; }
+  .pc-status.turn  { color: var(--gold); }
+
+  /* MOVES */
+  .moves-list { max-height: 320px; overflow-y: auto; }
+  .moves-list::-webkit-scrollbar { width: 4px; }
+  .moves-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .move-item { padding: 7px 10px; background: var(--dark-3); border-radius: 4px; margin-bottom: 5px; font-size: 12px; border-left: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .move-num { color: var(--text-dim); font-weight: bold; min-width: 24px; }
+  .move-text { color: var(--text); flex: 1; }
+  .move-capture { color: #ef4444; }
+  .move-check { color: #fbbf24; font-weight: bold; }
+
+  /* POWERS */
+  .powers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .power-card { padding: 8px 10px; background: var(--dark-3); border-radius: 5px; border-left: 3px solid; font-size: 11px; }
+  .power-card.shield     { border-left-color: #22c55e; }
+  .power-card.teleport   { border-left-color: #a855f7; }
+  .power-card.freeze     { border-left-color: #06b6d4; }
+  .power-name { font-weight: bold; color: var(--text); margin-bottom: 2px; }
+  .power-pos  { color: var(--text-dim); }
+
+  /* BUTTONS */
+  .btn { padding: 10px 18px; border: none; border-radius: 6px; font-size: 13px; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white; }
+  .btn-primary:hover { background: linear-gradient(135deg, #1e40af, #1d4ed8); transform: translateY(-1px); }
+  .btn-secondary { background: var(--dark-3); border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
+  .btn-gold { background: linear-gradient(135deg, #b8922a, var(--gold)); color: #0a0a0f; }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(201,168,76,0.3); }
+  .btn-group { display: flex; gap: 10px; margin-top: 14px; width: 100%; }
+  .btn-group .btn { flex: 1; }
+
+  .message { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; width: 100%; }
+  .message.success { background: rgba(20,83,45,0.5); color: #86efac; border: 1px solid #22c55e; }
+  .message.error   { background: rgba(76,5,25,0.5);  color: #fca5a5; border: 1px solid #dc2626; }
+  .message.info    { background: rgba(30,58,95,0.5); color: #93c5fd; border: 1px solid #2563eb; }
+
+  /* Toast fix în colț — nu mișcă tabla */
+  #toast-box {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .toast {
+    padding: 10px 16px; border-radius: 8px; font-size: 13px;
+    font-family: 'Crimson Text', serif; max-width: 320px;
+    animation: toastIn 0.3s ease, toastOut 0.4s ease 3.6s forwards;
+    pointer-events: none;
+  }
+  .toast.success { background: rgba(20,83,45,0.95); color: #86efac; border: 1px solid #22c55e; }
+  .toast.error   { background: rgba(76,5,25,0.95);  color: #fca5a5; border: 1px solid #dc2626; }
+  .toast.info    { background: rgba(20,40,80,0.95); color: #93c5fd; border: 1px solid #2563eb; }
+  @keyframes toastIn  { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(8px); } }
+
+  /* CHECKMATE MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--dark-2); border: 2px solid var(--gold);
+    border-radius: 16px; padding: 48px 40px; text-align: center;
+    max-width: 420px; width: 90%;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-icon { font-size: 72px; display: block; margin-bottom: 16px; }
+  .modal-title { font-family: 'Cinzel', serif; font-size: 28px; color: var(--gold); letter-spacing: 4px; margin-bottom: 8px; }
+  .modal-sub   { font-size: 16px; color: var(--text-dim); margin-bottom: 32px; }
+  .modal-winner { font-family: 'Cinzel', serif; font-size: 20px; color: var(--text); margin-bottom: 4px; }
+  .modal .btn { min-width: 160px; margin: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>♟ PowerChess</h1>
+  <div class="header-right">
+    <span id="game-id-badge" style="font-size:10px;color:var(--text-dim);font-family:monospace;"></span>
+    <a href="menu.html" class="back-btn">← Meniu</a>
+    <div class="status" id="status">● Conectare...</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- LEFT -->
+  <div>
+    <div class="panel">
+      <h2>Jucători</h2>
+      <div id="players-panel"></div>
+    </div>
+    <div class="panel" style="margin-top:16px;">
+      <h2>Legendă Puteri</h2>
+      <div class="legend-list">
+        <div class="legend-item"><span class="legend-icon">🛡</span><div class="legend-text"><div class="legend-name">Shield</div><div class="legend-desc">Piesa aleasă nu poate fi capturată 1 tur</div></div></div>
+        <div class="legend-item"><span class="legend-icon">🔮</span><div class="legend-text"><div class="legend-name">Teleport</div><div class="legend-desc">Mută o piesă oriunde pe tablă</div></div></div>
+        <div class="legend-item"><span class="legend-icon">❄️</span><div class="legend-text"><div class="legend-name">Freeze</div><div class="legend-desc">Îngheață o piesă inamică — nu poate fi mutată 1 tur</div></div></div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+        <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;">PUTERI COLECTATE</div>
+        <div class="collected-powers" id="collected-powers-panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div>
+    <div class="panel board-panel">
+      <div class="freeze-banner" id="freeze-banner">⚡ Mai faci o mutare!</div>
+      <div class="check-banner" id="check-banner"></div>
+      <div class="game-info" id="game-info"></div>
+      <div class="board-wrap" style="position:relative;padding-left:24px;">
+        <div class="board" id="board"></div>
+      </div>
+      <div class="coords" style="padding-left:24px;">
+        <div class="coord">a</div><div class="coord">b</div><div class="coord">c</div><div class="coord">d</div>
+        <div class="coord">e</div><div class="coord">f</div><div class="coord">g</div><div class="coord">h</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="spawn-power-btn">✦ Generează Putere</button>
+        <button class="btn btn-secondary" id="reset-btn">↺ Joc Nou</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div>
+    <div class="panel">
+      <h2>Istoric Mutări</h2>
+      <div class="moves-list" id="moves-panel"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CHECKMATE MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <span class="modal-icon" id="modal-icon">♛</span>
+    <div class="modal-title" id="modal-title">Șah Mat!</div>
+    <div class="modal-winner" id="modal-winner"></div>
+    <div class="modal-sub" id="modal-sub">Felicitări!</div>
+    <div>
+      <button class="btn btn-gold" onclick="newGameFromModal()">Joc Nou</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('modal').classList.remove('show')">Continuă</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-box"></div>
+
+<script>
+const BASE = window.location.origin.includes('powerchess.local') 
+  ? 'http://powerchess.local' 
+  : 'http://localhost:8080';
+const PIECES_UNICODE = {
+  white: { king:'♔', queen:'♕', rook:'♖', bishop:'♗', knight:'♘', pawn:'♙' },
+  black: { king:'♚', queen:'♛', rook:'♜', bishop:'♝', knight:'♞', pawn:'♟' }
+};
+
+let GAME_ID = new URLSearchParams(window.location.search).get('gameId') || null;
+
+// Puterile permise în joc (restul sunt filtrate complet)
+const ALLOWED_POWERS = ['shield', 'teleport', 'freeze'];
+
+let gameState = {
+  game: null, board: null, players: {},
+  moves: [], powers: [],
+  selectedPiece: null, validMoves: [],
+  checkState: { white: false, black: false },
+  gameOver: false,
+  // Power state
+  activePowerMode: null,
+  frozenPieceIds: {},       // { pieceId: true } - piese înghețate (nu pot fi mutate 1 tur)
+  shieldedPieceIds: {},     // { pieceId: turnsLeft }
+  _skipRenderFreeze: false,
+};
+
+// ── INIT ─────────────────────────────────────────────────────
+async function init() {
+  await checkServer();
+  if (!GAME_ID) {
+    try {
+      const res  = await fetch(`${BASE}/games?status=active`);
+      const list = await res.json();
+      if (list.length > 0) {
+        GAME_ID = list[0].id;
+      } else {
+        showMessage('Nu există partide active. Mergi la Meniu pentru a crea una.', 'info');
+        return;
+      }
+    } catch(e) {
+      showMessage('Eroare la conectare. Serverul rulează?', 'error');
+      return;
+    }
+  }
+  const badge = document.getElementById('game-id-badge');
+  if (badge) badge.textContent = 'ID: ' + GAME_ID;
+
+  await loadGame();
+  setInterval(checkServer, 10000);
+  document.getElementById('spawn-power-btn').onclick = spawnPower;
+  document.getElementById('reset-btn').onclick = resetGame;
+}
+
+// ── SERVER STATUS ─────────────────────────────────────────────
+async function checkServer() {
+  const el = document.getElementById('status');
+  try {
+    const res = await fetch(`${BASE}/games`, { signal: AbortSignal.timeout(2000) });
+    el.textContent = res.ok ? '● Server Online' : '● Server Error';
+    el.className   = 'status ' + (res.ok ? 'online' : 'offline');
+  } catch {
+    el.textContent = '● Server Offline';
+    el.className   = 'status offline';
+  }
+}
+
+// ── LOAD ──────────────────────────────────────────────────────
+async function loadGame() {
+  if (!GAME_ID) return;
+  try {
+    const [gRes, bRes, mRes, pwRes] = await Promise.all([
+      fetch(`${BASE}/games/${GAME_ID}`),
+      fetch(`${BASE}/games/${GAME_ID}/board`),
+      fetch(`${BASE}/games/${GAME_ID}/moves`),
+      fetch(`${BASE}/games/${GAME_ID}/powers`),
+    ]);
+    gameState.game   = await gRes.json();
+    gameState.board  = await bRes.json();
+    gameState.moves  = await mRes.json();
+    // Filtrăm doar puterile permise
+    const allPowers = await pwRes.json();
+    gameState.powers = allPowers.filter(p => ALLOWED_POWERS.includes(p.type));
+
+    const [p1, p2] = await Promise.all([
+      fetch(`${BASE}/players/${gameState.game.whitePlayerId}`).then(r => r.json()),
+      fetch(`${BASE}/players/${gameState.game.blackPlayerId}`).then(r => r.json()),
+    ]);
+    gameState.players.white = p1;
+    gameState.players.black = p2;
+
+    // ── AUTO-COLECTARE: dacă o putere e pe o celulă cu o piesă, o colectăm ──
+    await autoCollectPowers();
+
+    // Detecteaza check / checkmate
+    detectCheckAndMate();
+    render();
+  } catch(e) {
+    console.error('Load error:', e);
+  }
+}
+
+// ── AUTO-COLECTARE PUTERI ─────────────────────────────────────
+// Dacă serverul a spawnat o putere exact pe o celulă cu o piesă
+// (sau piesa a mutat pe putere dar serverul n-a colectat-o automat),
+// o colectăm manual via API și re-fetch powers.
+async function autoCollectPowers() {
+  if (!gameState.board?.cells || !gameState.powers.length) return;
+
+  let didCollect = false;
+
+  for (const cell of gameState.board.cells) {
+    if (!cell.piece || !cell.power) continue;
+    const pw = gameState.powers.find(p => p.id === cell.power.id && !p.isUsed && !p.collectedByPieceId);
+    if (!pw) continue;
+    if (!ALLOWED_POWERS.includes(pw.type)) continue;
+
+    // Colectăm: marcăm puterea ca aparținând piesei
+    try {
+      await fetch(`${BASE}/games/${GAME_ID}/powers/${pw.id}/collect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pieceId: cell.piece.id })
+      });
+      pw.collectedByPieceId = cell.piece.id;
+      didCollect = true;
+      showMessage(`✦ ${cell.piece.color === 'white' ? gameState.players.white?.username : gameState.players.black?.username} a colectat ${pw.type}!`, 'info');
+    } catch(e) {
+      // Dacă nu există endpoint /collect, marcăm local
+      pw.collectedByPieceId = cell.piece.id;
+      didCollect = true;
+    }
+  }
+
+  // Dacă am colectat ceva, re-fetch powers actualizate de pe server
+  if (didCollect) {
+    try {
+      const pwRes = await fetch(`${BASE}/games/${GAME_ID}/powers`);
+      const allPowers = await pwRes.json();
+      gameState.powers = allPowers.filter(p => ALLOWED_POWERS.includes(p.type));
+    } catch(e) {}
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHECK / CHECKMATE DETECTION (client-side)
+// ══════════════════════════════════════════════════════════════
+
+function getBoardMap() {
+  // Returneaza un map row,col -> piece din board cells
+  const map = {};
+  if (!gameState.board?.cells) return map;
+  for (const cell of gameState.board.cells) {
+    if (cell.piece) map[`${cell.position.row},${cell.position.col}`] = cell.piece;
+  }
+  return map;
+}
+
+function getValidMovesLocal(piece, boardMap) {
+  const row = piece.position.row;
+  const col = piece.position.col;
+  const color = piece.color;
+  const moves = [];
+
+  const inBounds = (r,c) => r>=1&&r<=8&&c>=1&&c<=8;
+  const isEnemy  = (r,c) => boardMap[`${r},${c}`] && boardMap[`${r},${c}`].color !== color;
+  const isEmpty  = (r,c) => !boardMap[`${r},${c}`];
+  const canGo    = (r,c) => inBounds(r,c) && (isEmpty(r,c) || isEnemy(r,c));
+
+  const slide = (dr, dc) => {
+    let r = row+dr, c = col+dc;
+    while (inBounds(r,c)) {
+      if (!isEmpty(r,c)) {
+        if (isEnemy(r,c)) moves.push([r,c]);
+        break;
+      }
+      moves.push([r,c]);
+      r += dr; c += dc;
+    }
+  };
+
+  switch (piece.type) {
+    case 'pawn': {
+      const dir = color === 'white' ? 1 : -1;
+      if (inBounds(row+dir, col) && isEmpty(row+dir, col)) {
+        moves.push([row+dir, col]);
+        const startRow = color === 'white' ? 2 : 7;
+        if (row === startRow && isEmpty(row+2*dir, col)) moves.push([row+2*dir, col]);
+      }
+      for (const dc of [-1,1])
+        if (inBounds(row+dir, col+dc) && isEnemy(row+dir, col+dc))
+          moves.push([row+dir, col+dc]);
+      break;
+    }
+    case 'knight':
+      for (const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])
+        if (canGo(row+dr, col+dc)) moves.push([row+dr, col+dc]);
+      break;
+    case 'king':
+      for (const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]])
+        if (canGo(row+dr, col+dc)) moves.push([row+dr, col+dc]);
+      break;
+    case 'rook':
+      for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]) slide(dr,dc); break;
+    case 'bishop':
+      for (const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]) slide(dr,dc); break;
+    case 'queen':
+      for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) slide(dr,dc); break;
+  }
+  return moves;
+}
+
+function isKingInCheck(color, boardMap) {
+  // Gaseste regele
+  let kingPos = null;
+  for (const [key, piece] of Object.entries(boardMap)) {
+    if (piece.type === 'king' && piece.color === color) {
+      const [r,c] = key.split(',').map(Number);
+      kingPos = [r,c];
+      break;
+    }
+  }
+  if (!kingPos) return false;
+
+  // Verifica daca vreo piesa adversa ataca pozitia regelui
+  const enemy = color === 'white' ? 'black' : 'white';
+  for (const [key, piece] of Object.entries(boardMap)) {
+    if (piece.color !== enemy) continue;
+    const moves = getValidMovesLocal(piece, boardMap);
+    if (moves.some(([r,c]) => r === kingPos[0] && c === kingPos[1])) return true;
+  }
+  return false;
+}
+
+function hasAnyLegalMove(color, boardMap) {
+  // Verifica daca jucatorul `color` are macar o mutare legala
+  for (const [key, piece] of Object.entries(boardMap)) {
+    if (piece.color !== color) continue;
+    const moves = getValidMovesLocal(piece, boardMap);
+    for (const [tr, tc] of moves) {
+      // Simuleaza mutarea
+      const newMap = { ...boardMap };
+      delete newMap[key];
+      newMap[`${tr},${tc}`] = piece;
+      if (!isKingInCheck(color, newMap)) return true;
+    }
+  }
+  return false;
+}
+
+function detectCheckAndMate() {
+  const boardMap = getBoardMap();
+  const currentTurn = gameState.game?.currentTurn;
+  if (!currentTurn || gameState.game?.status !== 'active') return;
+
+  const inCheck = isKingInCheck(currentTurn, boardMap);
+  gameState.checkState = { [currentTurn]: inCheck };
+
+  if (inCheck) {
+    const hasMove = hasAnyLegalMove(currentTurn, boardMap);
+    if (!hasMove) {
+      // CHECKMATE
+      gameState.gameOver = true;
+      const winner = currentTurn === 'white' ? 'black' : 'white';
+      const winnerName = gameState.players[winner]?.username || winner;
+      const loserName  = gameState.players[currentTurn]?.username || currentTurn;
+      showCheckmateModal(winnerName, loserName);
+    }
+  } else {
+    // Verifica pat (stalemate)
+    const hasMove = hasAnyLegalMove(currentTurn, boardMap);
+    if (!hasMove) {
+      gameState.gameOver = true;
+      showStalemateModal();
+    }
+  }
+}
+
+function showCheckmateModal(winner, loser) {
+  document.getElementById('modal-icon').textContent  = '♛';
+  document.getElementById('modal-title').textContent = 'ȘAH MAT!';
+  document.getElementById('modal-winner').textContent = `${winner} câștigă!`;
+  document.getElementById('modal-sub').textContent   = `${loser} este în șah mat. Partidă terminată.`;
+  document.getElementById('modal').classList.add('show');
+}
+
+function showStalemateModal() {
+  document.getElementById('modal-icon').textContent  = '🤝';
+  document.getElementById('modal-title').textContent = 'PAT!';
+  document.getElementById('modal-winner').textContent = 'Remiză';
+  document.getElementById('modal-sub').textContent   = 'Nicio mutare legală disponibilă.';
+  document.getElementById('modal').classList.add('show');
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render() {
+  renderCheckBanner();
+  renderGameInfo();
+  renderPlayers();
+  renderBoard();
+  renderMoves();
+  renderCollectedPowers();
+  renderFreezeBanner();
+}
+
+function renderCheckBanner() {
+  const banner = document.getElementById('check-banner');
+  const g = gameState.game;
+  if (!g || g.status !== 'active') { banner.className = 'check-banner'; return; }
+
+  const cur = g.currentTurn;
+  if (gameState.checkState[cur]) {
+    const name = gameState.players[cur]?.username || cur;
+    banner.textContent  = `⚠ ȘAH! ${name} este în șah!`;
+    banner.className    = 'check-banner check';
+  } else {
+    banner.className = 'check-banner';
+  }
+}
+
+function renderGameInfo() {
+  const g = gameState.game;
+  if (!g) return;
+  const turnClass = g.currentTurn === 'white' ? 'turn-white' : 'turn-black';
+  const turnName  = gameState.players[g.currentTurn]?.username || (g.currentTurn === 'white' ? 'Alb' : 'Negru');
+  document.getElementById('game-info').innerHTML = `
+    <div><span class="gi-label">Status:</span> <span class="gi-value">${g.status}</span></div>
+    <div><span class="gi-label">Tură:</span> <span class="turn-badge ${turnClass}">${turnName} — #${g.turnNumber}</span></div>
+    <div><span class="gi-label">Puteri la:</span> <span class="gi-value">fiecare ${g.powerSpawnInterval} ture</span></div>
+  `;
+}
+
+function renderPlayers() {
+  const white = gameState.players.white;
+  const black = gameState.players.black;
+  if (!white || !black) return;
+  const cur   = gameState.game?.currentTurn;
+  const chk   = gameState.checkState;
+
+  const makeCard = (color, p) => {
+    let extra = '';
+    if (chk[color]) extra = '<div class="pc-status check">⚠ În șah!</div>';
+    else if (cur === color) extra = '<div class="pc-status turn">● Rândul tău</div>';
+    const cls = `player-card ${color}-player${cur===color?' active-turn':''}${chk[color]?' in-check-player':''}`;
+    const icon = color === 'white' ? '♔' : '♚';
+    return `<div class="${cls}">
+      <div class="pc-name">${icon} ${p.username}</div>
+      <div class="pc-stats">${p.gamesPlayed} jocuri | ${p.wins} victorii</div>
+      ${extra}
+    </div>`;
+  };
+
+  document.getElementById('players-panel').innerHTML =
+    makeCard('white', white) + makeCard('black', black);
+}
+
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  if (!gameState.board) {
+    boardEl.innerHTML = '<div style="padding:40px;color:var(--text-dim);text-align:center;">Se încarcă...</div>';
+    return;
+  }
+
+  // Curăță shield-urile expirate
+  const tn = gameState.game?.turnNumber || 0;
+  for (const pid of Object.keys(gameState.shieldedPieceIds)) {
+    if (tn > gameState.shieldedPieceIds[pid] + 2) {
+      delete gameState.shieldedPieceIds[pid];
+    }
+  }
+
+  // Gaseste pozitia regelui in sah pentru highlight
+  const checkColor = Object.entries(gameState.checkState).find(([c,v]) => v)?.[0];
+  let kingCheckPos = null;
+  if (checkColor && gameState.board.cells) {
+    for (const cell of gameState.board.cells) {
+      if (cell.piece?.type === 'king' && cell.piece?.color === checkColor) {
+        kingCheckPos = `${cell.position.row},${cell.position.col}`;
+        break;
+      }
+    }
+  }
+
+  boardEl.innerHTML = '';
+  for (let row = 8; row >= 1; row--) {
+    for (let col = 1; col <= 8; col++) {
+      const cell = gameState.board.cells?.find(c => c.position.row===row && c.position.col===col);
+      const div  = document.createElement('div');
+      div.className = 'cell ' + ((row+col)%2===0 ? 'light' : 'dark');
+
+      // Row label
+      if (col === 1) {
+        const lbl = document.createElement('div');
+        lbl.className = 'row-label';
+        lbl.style.cssText = 'position:absolute;left:-20px;font-size:11px;color:var(--text-dim);';
+        lbl.textContent = row;
+        div.appendChild(lbl);
+      }
+
+      if (cell?.piece) {
+        const piece = cell.piece;
+        const shadow = piece.color === 'white' ? '0 0 4px #000,0 0 8px #000' : '0 0 3px #fff,0 0 6px rgba(255,255,255,0.3)';
+        const color  = piece.color === 'white' ? '#ffffff' : '#0f0f1e';
+        const span   = document.createElement('span');
+        span.style.cssText = `color:${color};text-shadow:${shadow};font-size:44px;line-height:1;pointer-events:none;`;
+        span.textContent   = PIECES_UNICODE[piece.color][piece.type];
+        div.appendChild(span);
+        div.dataset.pieceId = piece.id;
+        div.dataset.color   = piece.color;
+        if (gameState.selectedPiece?.id === piece.id) div.classList.add('selected');
+        // Shield highlight
+        if (gameState.shieldedPieceIds[piece.id] > 0) div.classList.add('shielded-piece');
+        // Teleport: highlight selected teleport piece
+        if (gameState.teleportPiece?.id === piece.id) div.classList.add('selected');
+        // Frozen piece highlight
+        if (piece.id in gameState.frozenPieceIds) div.classList.add('frozen-piece');
+        // Freeze mode: highlight enemy pieces as targets
+        if (gameState.activePowerMode?.type === 'freeze') {
+          const enemy = gameState.game?.currentTurn === 'white' ? 'black' : 'white';
+          if (piece.color === enemy) div.classList.add('freeze-target');
+        }
+      }
+
+      if (cell?.power && !cell.power.collectedByPieceId) {
+        const POWER_EMOJIS = { shield:'🛡', teleport:'🔮', freeze:'❄️' };
+        // Afișăm doar puteri permise
+        if (!POWER_EMOJIS[cell.power.type]) { /* skip */ } else {
+        const icon = document.createElement('span');
+        icon.className   = 'power-icon';
+        icon.textContent = POWER_EMOJIS[cell.power.type];
+        icon.title = cell.power.type;
+        div.appendChild(icon);
+        }
+      }
+
+      // Check highlight pe rege
+      if (kingCheckPos === `${row},${col}`) div.classList.add('in-check');
+
+      // Valid moves
+      const isValid = gameState.validMoves.some(m => m.row===row && m.col===col);
+      if (isValid) {
+        div.classList.add('valid-move');
+        if (cell?.piece) div.classList.add('has-piece');
+      }
+
+      // Teleport destination highlight — doar celule goale
+      if (gameState.activePowerMode?.type === 'teleport' && gameState.teleportPiece) {
+        if (!cell?.piece) {
+          div.classList.add('teleport-target');
+        }
+        // Piesa selectată pentru teleport — highlight
+        if (cell?.piece?.id === gameState.teleportPiece?.id) {
+          div.classList.add('selected');
+        }
+      }
+
+      div.onclick = () => handleCellClick(row, col, cell);
+      boardEl.appendChild(div);
+    }
+  }
+}
+
+function renderMoves() {
+  const panel = document.getElementById('moves-panel');
+  if (!gameState.moves.length) {
+    panel.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px;text-align:center;">Nicio mutare încă</div>';
+    return;
+  }
+  panel.innerHTML = [...gameState.moves].reverse().map(m => {
+    const checkTag = m.causedCheck ? '<span class="move-check">+</span>' : '';
+    const capTag   = m.capturedPieceId ? '<span class="move-capture">✕</span>' : '';
+    return `<div class="move-item">
+      <span class="move-num">#${m.turnNumber}</span>
+      <span class="move-text">${m.from.notation} → ${m.to.notation}</span>
+      ${capTag}${checkTag}
+    </div>`;
+  }).join('');
+}
+
+function renderPowers() {
+  renderCollectedPowers();
+  renderFreezeBanner();
+}
+
+function renderFreezeBanner() {
+  const banner = document.getElementById('freeze-banner');
+  banner.className = 'freeze-banner';
+  banner.style.cssText = '';
+}
+
+function renderCollectedPowers() {
+  const panel = document.getElementById('collected-powers-panel');
+  if (!gameState.game) { panel.innerHTML = ''; return; }
+
+  const currentTurn = gameState.game.currentTurn;
+  // Doar puteri permise, colectate, neutilizate
+  const collected = gameState.powers.filter(p =>
+    p.collectedByPieceId && !p.isUsed && ALLOWED_POWERS.includes(p.type)
+  );
+
+  if (!collected.length) { panel.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:8px 0 4px;text-align:center;">Nicio putere colectată</div>'; return; }
+
+  const ICONS  = { shield:'🛡', teleport:'🔮', freeze:'❄️' };
+  const DESCS  = {
+    shield:   'Piesa aleasă nu poate fi capturată 1 tur',
+    teleport: 'Mută o piesă oriunde pe tablă',
+    freeze:   'Adversarul sare următorul tur',
+  };
+  const NAMES  = { shield: 'SHIELD', teleport: 'TELEPORT', freeze: 'FREEZE' };
+
+  // Găsim ce culoare are piesa care deține puterea
+  let html = '';
+  collected.forEach(p => {
+    let ownerColor = null;
+    for (const cell of (gameState.board?.cells || [])) {
+      if (cell.piece?.id === p.collectedByPieceId) { ownerColor = cell.piece.color; break; }
+    }
+    const isMyTurn = (ownerColor === currentTurn);
+    const isActive = gameState.activePowerMode?.power?.id === p.id;
+    const ownerName = gameState.players[ownerColor]?.username || ownerColor || '?';
+    const icon = ICONS[p.type];
+    if (!icon) return; // skip orice tip necunoscut
+
+    html += `<button class="collected-power-btn ${isActive?'active-power':''}"
+      onclick="activatePower('${p.id}')" ${!isMyTurn ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>
+      <span class="pw-emoji">${icon}</span>
+      <div class="pw-info">
+        <div class="pw-name">${NAMES[p.type]}</div>
+        <div class="pw-desc">${DESCS[p.type]}</div>
+        <div class="pw-who">deținut de ${ownerName}</div>
+      </div>
+      ${isActive ? '<span style="color:#f59e0b;font-size:18px;">▶</span>' : ''}
+    </button>`;
+  });
+  panel.innerHTML = html || '<div style="color:var(--text-dim);font-size:12px;padding:8px 0 4px;text-align:center;">Nicio putere colectată</div>';
+}
+
+// ── POWER ACTIVATION ──────────────────────────────────────────
+function activatePower(powerId) {
+  const power = gameState.powers.find(p => p.id === powerId);
+  if (!power) return;
+
+  if (gameState.activePowerMode?.power?.id === powerId) {
+    gameState.activePowerMode = null;
+    gameState.teleportPiece = null;
+    renderCollectedPowers();
+    renderBoard();
+    return;
+  }
+
+  gameState.activePowerMode = { type: power.type, power };
+  renderCollectedPowers();
+
+  if (power.type === 'teleport') {
+    renderBoard();
+  } else if (power.type === 'shield') {
+    renderBoard();
+  } else if (power.type === 'freeze') {
+    showMessage('❄️ Click pe o piesă inamică pentru a o îngheța!', 'info');
+    renderBoard();
+  }
+}
+
+async function markPowerUsed(powerId) {
+  try {
+    await fetch(`${BASE}/games/${GAME_ID}/powers/${powerId}/use`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pieceId: 'system' })
+    });
+  } catch(e) {}
+  const pw = gameState.powers.find(p => p.id === powerId);
+  if (pw) pw.isUsed = true;
+}
+
+function applyFreezeToPiece(pieceId, power) {
+  // Salvăm numărul turei curente — piesa rămâne înghețată până când turnNumber crește
+  const currentTurnNumber = gameState.game?.turnNumber || 0;
+  gameState.frozenPieceIds[pieceId] = currentTurnNumber; // dezghețăm când turnNumber > această valoare
+  gameState.activePowerMode = null;
+  markPowerUsed(power.id);
+  renderCollectedPowers();
+  renderBoard();
+  showMessage('❄️ Piesă înghețată! Nu poate fi mutată în acest tur.', 'info');
+}
+
+async function applyShieldToPiece(pieceId, power) {
+  // Salvăm tura la care s-a aplicat shield-ul
+  gameState.shieldedPieceIds[pieceId] = gameState.game.turnNumber;
+  gameState.activePowerMode = null;
+  markPowerUsed(power.id);
+  renderCollectedPowers();
+  renderBoard();
+}
+
+async function applyTeleport(pieceId, toRow, toCol, power) {
+  // Verifică destinație goală
+  const destCell = gameState.board.cells?.find(c => c.position.row===toRow && c.position.col===toCol);
+  if (destCell?.piece) return;
+
+  const playerId = gameState.game.currentTurn === 'white'
+    ? gameState.game.whitePlayerId : gameState.game.blackPlayerId;
+
+  try {
+    await fetch(`${BASE}/games/${GAME_ID}/moves`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerId, pieceId,
+        to: { row: toRow, col: toCol, notation: String.fromCharCode(96+toCol)+toRow }
+      })
+    });
+    await markPowerUsed(power.id);
+  } catch(e) {}
+
+  gameState.activePowerMode = null;
+  gameState.teleportPiece = null;
+  await loadGame();
+}
+
+function findPieceById(id) {
+  for (const cell of (gameState.board?.cells || []))
+    if (cell.piece?.id === id) return cell.piece;
+  return null;
+}
+
+// ── GAME LOGIC ────────────────────────────────────────────────
+async function handleCellClick(row, col, cell) {
+  if (gameState.gameOver) return;
+
+  // ── TELEPORT MODE ─────────────────────────────────────────
+  if (gameState.activePowerMode?.type === 'teleport') {
+    const pw = gameState.activePowerMode.power;
+    if (!gameState.teleportPiece) {
+      if (cell?.piece && cell.piece.color === gameState.game.currentTurn) {
+        gameState.teleportPiece = cell.piece;
+        renderBoard();
+      }
+    } else {
+      if (cell?.piece?.color === gameState.game.currentTurn) {
+        gameState.teleportPiece = cell.piece;
+        renderBoard();
+      } else if (!cell?.piece) {
+        await applyTeleport(gameState.teleportPiece.id, row, col, pw);
+      }
+    }
+    return;
+  }
+
+  // ── SHIELD MODE ───────────────────────────────────────────
+  if (gameState.activePowerMode?.type === 'shield') {
+    if (cell?.piece && cell.piece.color === gameState.game.currentTurn) {
+      await applyShieldToPiece(cell.piece.id, gameState.activePowerMode.power);
+    }
+    return;
+  }
+
+  // ── FREEZE MODE ───────────────────────────────────────────
+  if (gameState.activePowerMode?.type === 'freeze') {
+    const enemy = gameState.game.currentTurn === 'white' ? 'black' : 'white';
+    if (cell?.piece && cell.piece.color === enemy) {
+      applyFreezeToPiece(cell.piece.id, gameState.activePowerMode.power);
+    }
+    return;
+  }
+
+  // ── NORMAL SELECT + MOVE ──────────────────────────────────
+  if (gameState.selectedPiece && gameState.validMoves.some(m => m.row===row && m.col===col)) {
+    await makeMove(row, col);
+    return;
+  }
+
+  if (cell?.piece) {
+    const piece = cell.piece;
+    if (piece.color !== gameState.game.currentTurn) return;
+
+    // Dacă piesa e înghețată, nu o putem muta
+    if (piece.id in gameState.frozenPieceIds) {
+      showMessage('❄️ Această piesă e înghețată!', 'error');
+      return;
+    }
+
+    gameState.selectedPiece = piece;
+    try {
+      const res = await fetch(`${BASE}/games/${GAME_ID}/moves/valid?pieceId=${piece.id}`);
+      let moves = await res.json();
+      const boardMap = getBoardMap();
+      moves = moves.filter(m => {
+        const newMap = { ...boardMap };
+        delete newMap[`${piece.position.row},${piece.position.col}`];
+        newMap[`${m.row},${m.col}`] = piece;
+        return !isKingInCheck(piece.color, newMap);
+      });
+      gameState.validMoves = moves;
+      renderBoard();
+    } catch(e) { console.error(e); }
+  } else {
+    gameState.selectedPiece = null;
+    gameState.validMoves = [];
+    gameState.teleportPiece = null;
+    renderBoard();
+  }
+}
+
+async function makeMove(row, col) {
+  const piece = gameState.selectedPiece;
+  const currentTurn = gameState.game.currentTurn;
+  const playerId = currentTurn === 'white'
+    ? gameState.game.whitePlayerId : gameState.game.blackPlayerId;
+
+  // ── SHIELD: blochează captura, consumă tura atacatorului ──
+  const targetCell = gameState.board.cells?.find(c => c.position.row===row && c.position.col===col);
+  if (targetCell?.piece && targetCell.piece.color !== piece.color) {
+    const targetId = targetCell.piece.id;
+    if (gameState.shieldedPieceIds[targetId] !== undefined) {
+  const shieldedAtTurn = gameState.shieldedPieceIds[targetId];
+  const currentTurnNo  = gameState.game.turnNumber;
+  // Shield expiră după 2 ture complete (alb+negru = +2)
+  if (currentTurnNo <= shieldedAtTurn + 2) {
+    // Blochează captura — dar avansăm tura pe server
+    // Facem mutarea piesii atacatoare pe loc (o mutăm în propria pozitie = skip)
+    try {
+      await fetch(`${BASE}/games/${GAME_ID}/moves`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId,
+          pieceId: piece.id,
+          to: { row: piece.position.row, col: piece.position.col, notation: piece.position.notation }
+        })
+      });
+    } catch(e) {}
+    gameState.selectedPiece = null;
+    gameState.validMoves = [];
+    showMessage('🛡 Captura blocată de SHIELD!', 'info');
+    await loadGame(); // reîncarcă starea de la server (tura avansată corect)
+    return;
+  } else {
+    // Shield a expirat
+    delete gameState.shieldedPieceIds[targetId];
+  }
+}
+  }
+
+  try {
+    const res = await fetch(`${BASE}/games/${GAME_ID}/moves`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerId, pieceId: piece.id,
+        to: { row, col, notation: String.fromCharCode(96+col)+row }
+      })
+    });
+
+    if (!res.ok) { showMessage('Mutare invalidă!', 'error'); return; }
+
+    const data = await res.json();
+    gameState.selectedPiece = null;
+    gameState.validMoves = [];
+
+    // ── Verificare imediată colectare putere la destinație ──
+    // Serverul uneori nu colectează la prima mutare, forțăm local
+    const destPower = gameState.powers.find(p =>
+      !p.isUsed && !p.collectedByPieceId &&
+      ALLOWED_POWERS.includes(p.type) &&
+      p.position?.row === row && p.position?.col === col
+    );
+    if (destPower) {
+      destPower.collectedByPieceId = piece.id;
+      try {
+        await fetch(`${BASE}/games/${GAME_ID}/powers/${destPower.id}/collect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pieceId: piece.id })
+        });
+      } catch(e) {}
+    }
+
+    await loadGame();
+
+    // ── Dezghețăm piesele al căror tur de freeze a expirat ──
+    if (Object.keys(gameState.frozenPieceIds).length > 0) {
+      const currentTurnNumber = gameState.game?.turnNumber || 0;
+      const newFrozen = {};
+      for (const [pid, frozenAtTurn] of Object.entries(gameState.frozenPieceIds)) {
+        // Piesa a fost înghețată la tura frozenAtTurn.
+        // Rămâne înghețată exact 1 tură a inamicului = până turnNumber > frozenAtTurn + 1
+        if (currentTurnNumber <= frozenAtTurn + 1) newFrozen[pid] = frozenAtTurn;
+      }
+      gameState.frozenPieceIds = newFrozen;
+    }
+
+    const nextTurn = gameState.game?.currentTurn;
+
+    if (data.newPowerSpawned && ALLOWED_POWERS.includes(data.newPowerSpawned.type)) {
+      showMessage(`✦ Putere nouă: ${data.newPowerSpawned.type} la ${data.newPowerSpawned.position?.notation || ''}`, 'info');
+    } else if (gameState.checkState[nextTurn]) {
+      showMessage('ȘAH!', 'info');
+    }
+
+    // Verifică promoție pion
+    checkPawnPromotion();
+
+  } catch(e) {
+    showMessage('Eroare la trimiterea mutării', 'error');
+    console.error(e);
+  }
+}
+
+// ── PAWN PROMOTION ────────────────────────────────────────────
+function checkPawnPromotion() {
+  if (!gameState.board?.cells) return;
+  if (!window._promotedPieces) window._promotedPieces = new Set();
+
+  for (const cell of gameState.board.cells) {
+    const p = cell.piece;
+    if (!p || p.type !== 'pawn') continue;
+    if (window._promotedPieces.has(p.id)) continue; // deja promovat in aceasta sesiune
+    if ((p.color === 'white' && cell.position.row === 8) ||
+        (p.color === 'black' && cell.position.row === 1)) {
+      showPromotionModal(p);
+      return;
+    }
+  }
+}
+
+function showPromotionModal(pawn) {
+  // Creăm un modal de promoție
+  const existingModal = document.getElementById('promotion-modal');
+  if (existingModal) existingModal.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'promotion-modal';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;
+    display:flex;align-items:center;justify-content:center;
+  `;
+
+  const PIECES = pawn.color === 'white'
+    ? [['queen','♕'],['rook','♖'],['bishop','♗'],['knight','♘']]
+    : [['queen','♛'],['rook','♜'],['bishop','♝'],['knight','♞']];
+
+  const shadow = pawn.color === 'white'
+    ? '0 0 4px #000,0 0 8px #000' : '0 0 3px #fff,0 0 6px rgba(255,255,255,0.3)';
+  const col = pawn.color === 'white' ? '#fff' : '#0f0f1e';
+
+  overlay.innerHTML = `
+    <div style="background:var(--dark-2);border:2px solid var(--gold);border-radius:16px;padding:32px 40px;text-align:center;">
+      <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--gold);letter-spacing:3px;margin-bottom:24px;">
+        PROMOVARE PION
+      </div>
+      <div style="display:flex;gap:16px;justify-content:center;">
+        ${PIECES.map(([type, sym]) => `
+          <button onclick="promotePawn('${pawn.id}','${type}')"
+            style="background:var(--dark-3);border:2px solid var(--border);border-radius:10px;
+            padding:16px;cursor:pointer;transition:all 0.2s;color:${col};
+            font-size:52px;line-height:1;text-shadow:${shadow};"
+            onmouseover="this.style.borderColor='var(--gold)'"
+            onmouseout="this.style.borderColor='var(--border)'"
+          >${sym}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function promotePawn(pieceId, newType) {
+  document.getElementById('promotion-modal')?.remove();
+
+  // Marcheaza IMEDIAT ca promovat - impiedica re-aparitia modalului la orice loadGame
+  if (!window._promotedPieces) window._promotedPieces = new Set();
+  window._promotedPieces.add(pieceId);
+
+  // Schimba local imediat pentru feedback vizual instant
+  if (gameState.board?.cells) {
+    for (const cell of gameState.board.cells) {
+      if (cell.piece?.id === pieceId) { cell.piece.type = newType; break; }
+    }
+  }
+  render();
+
+  try {
+    // Salveaza in DB via PUT
+    const res = await fetch(`${BASE}/games/${GAME_ID}/pieces/${pieceId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: newType })
+    });
+
+    if (res.ok) {
+      showMessage(`♛ Pion promovat la ${newType}!`, 'success');
+      await loadGame(); // reincarca din DB - piesa e acum salvata corect
+    } else {
+      showMessage('Eroare la salvarea promovarii!', 'error');
+    }
+  } catch(e) {
+    showMessage('Eroare la comunicarea cu serverul', 'error');
+    console.error(e);
+  }
+}
+
+async function spawnPower() {
+  try {
+    const res = await fetch(`${BASE}/games/${GAME_ID}/powers/spawn`, { method: 'POST' });
+    if (res.ok) {
+      const p = await res.json();
+      showMessage(`✦ Putere generată: ${p.type} la ${p.position.notation}`, 'success');
+      await loadGame();
+    }
+  } catch(e) { showMessage('Eroare la generarea puterii', 'error'); }
+}
+
+async function resetGame() {
+  if (!confirm('Sigur vrei să resetezi jocul?')) return;
+  try {
+    await fetch(`${BASE}/games/${GAME_ID}`, { method: 'DELETE' });
+    window.location.href = 'menu.html';
+  } catch(e) { showMessage('Eroare la resetare', 'error'); }
+}
+
+async function newGameFromModal() {
+  document.getElementById('modal').classList.remove('show');
+  await resetGame();
+}
+
+function showMessage(text, type) {
+  const box = document.getElementById('toast-box');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = text;
+  box.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+cq<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerChess API Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: monospace; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+
+  header { background: #1a1a2e; border-bottom: 2px solid #4f46e5; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 20px; color: #a5b4fc; }
+  header span { font-size: 11px; color: #6b7280; background: #111827; padding: 2px 8px; border-radius: 4px; }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 0; height: calc(100vh - 57px); }
+
+  /* SIDEBAR */
+  .sidebar { background: #111827; border-right: 1px solid #1f2937; overflow-y: auto; }
+  .sidebar-section { padding: 10px 0; border-bottom: 1px solid #1f2937; }
+  .sidebar-title { font-size: 10px; color: #6b7280; padding: 6px 16px; text-transform: uppercase; letter-spacing: 1px; }
+  .endpoint-btn { width: 100%; text-align: left; background: none; border: none; padding: 7px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: monospace; font-size: 11px; color: #9ca3af; transition: background 0.15s; }
+  .endpoint-btn:hover { background: #1f2937; color: #e0e0e0; }
+  .endpoint-btn.active { background: #1e1b4b; color: #a5b4fc; }
+  .method { font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; min-width: 38px; text-align: center; }
+  .GET    { background: #14532d; color: #86efac; }
+  .POST   { background: #1e3a5f; color: #93c5fd; }
+  .DELETE { background: #4c0519; color: #fca5a5; }
+  .PUT    { background: #44330a; color: #fcd34d; }
+
+  /* MAIN PANELS */
+  .request-panel { background: #111827; border-right: 1px solid #1f2937; display: flex; flex-direction: column; overflow: hidden; }
+  .response-panel { background: #0f0f1a; display: flex; flex-direction: column; overflow: hidden; }
+
+  .panel-header { padding: 12px 16px; background: #1f2937; border-bottom: 1px solid #374151; font-size: 11px; color: #9ca3af; display: flex; align-items: center; justify-content: space-between; }
+  .panel-header strong { color: #e0e0e0; }
+
+  .panel-body { padding: 16px; overflow-y: auto; flex: 1; }
+
+  .url-bar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .method-tag { font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 4px; min-width: 54px; text-align: center; }
+  .url-input { flex: 1; background: #0f0f1a; border: 1px solid #374151; color: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  .url-input:focus { outline: none; border-color: #4f46e5; }
+
+  .send-btn { background: #4f46e5; color: white; border: none; padding: 7px 18px; border-radius: 4px; cursor: pointer; font-family: monospace; font-size: 12px; font-weight: bold; transition: background 0.15s; }
+  .send-btn:hover { background: #4338ca; }
+  .send-btn:disabled { background: #374151; cursor: not-allowed; }
+
+  .field-group { margin-bottom: 12px; }
+  .field-label { font-size: 10px; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
+  .field-input { width: 100%; background: #0f0f1a; border: 1px solid #374151; color: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  .field-input:focus { outline: none; border-color: #4f46e5; }
+  textarea.field-input { resize: vertical; min-height: 80px; }
+
+  .section-title { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; margin-top: 14px; border-bottom: 1px solid #1f2937; padding-bottom: 4px; }
+
+  /* STATUS BADGE */
+  .status-badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+  .status-2xx { background: #14532d; color: #86efac; }
+  .status-4xx { background: #7c2d12; color: #fdba74; }
+  .status-5xx { background: #4c0519; color: #fca5a5; }
+
+  /* JSON */
+  pre { font-family: monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+  .json-key    { color: #a5b4fc; }
+  .json-string { color: #86efac; }
+  .json-number { color: #fbbf24; }
+  .json-bool   { color: #f472b6; }
+  .json-null   { color: #9ca3af; }
+
+  .loading { color: #6b7280; font-style: italic; padding: 20px 0; }
+  .error-msg { color: #fca5a5; padding: 10px; background: #4c0519; border-radius: 4px; font-size: 12px; }
+
+  /* BOARD */
+  .board-container { display: inline-block; margin: 8px 0; }
+  .board-row { display: flex; }
+  .board-cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; border: 1px solid transparent; }
+  .board-cell.light { background: #e8d5b7; }
+  .board-cell.dark  { background: #b58863; }
+  .board-cell.has-power::after { content: '✦'; position: absolute; bottom: 1px; right: 2px; font-size: 8px; color: #fbbf24; }
+  .board-label { font-size: 9px; color: #6b7280; width: 36px; text-align: center; }
+  .board-row-label { width: 14px; font-size: 9px; color: #6b7280; display: flex; align-items: center; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid #374151; margin-bottom: 12px; }
+  .tab { padding: 7px 14px; font-size: 11px; cursor: pointer; border-bottom: 2px solid transparent; color: #6b7280; transition: color 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: monospace; }
+  .tab:hover { color: #e0e0e0; }
+  .tab.active { color: #a5b4fc; border-bottom-color: #4f46e5; }
+
+  .info-box { background: #1f2937; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 11px; color: #9ca3af; line-height: 1.6; }
+  .info-box strong { color: #a5b4fc; }
+
+  /* PIECES TABLE */
+  .pieces-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin-top: 6px; }
+  .piece-card { background: #1f2937; border-radius: 4px; padding: 6px 8px; font-size: 10px; }
+  .piece-card .pc-type { color: #a5b4fc; font-weight: bold; }
+  .piece-card .pc-pos  { color: #86efac; }
+  .piece-card .pc-color { font-size: 9px; color: #6b7280; }
+
+  .tag { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 3px; margin-right: 4px; }
+  .tag-power { background: #78350f; color: #fcd34d; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>♟ PowerChess API Explorer</h1>
+  <span>OpenAPI 3.0.1</span>
+  <span id="server-status" style="margin-left:auto;">● Conectare...</span>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- REQUEST PANEL -->
+  <div class="request-panel">
+    <div class="panel-header">
+      <strong>Request</strong>
+      <span id="current-op" style="color:#6b7280;">Selecteaza un endpoint</span>
+    </div>
+    <div class="panel-body" id="request-body-panel">
+      <div class="loading">← Selecteaza un endpoint din meniu</div>
+    </div>
+  </div>
+
+  <!-- RESPONSE PANEL -->
+  <div class="response-panel">
+    <div class="panel-header">
+      <strong>Response</strong>
+      <span id="status-badge"></span>
+    </div>
+    <div class="panel-body" id="response-body-panel">
+      <div class="loading">Asteapta un request...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE = window.location.origin.includes('powerchess.local') 
+  ? 'http://powerchess.local' 
+  : 'http://localhost:8080';
+
+// ── ENDPOINT DEFINITIONS ──────────────────────────────────────
+const endpoints = [
+  { group: 'Players', method:'GET',    path:'/players/{playerId}',                   op:'getPlayer',       desc:'Detalii jucator',          params:['playerId'] },
+  { group: 'Players', method:'POST',   path:'/players',                              op:'createPlayer',    desc:'Creeaza jucator',          body:'{"username":"TestPlayer","email":"test@example.com"}' },
+  { group: 'Games',   method:'GET',    path:'/games',                                op:'listGames',       desc:'Lista partide',            query:[{k:'status',v:'active',hint:'active|waiting|finished'}] },
+  { group: 'Games',   method:'GET',    path:'/games/{gameId}',                       op:'getGame',         desc:'Detalii partida',          params:['gameId'] },
+  { group: 'Games',   method:'POST',   path:'/games',                                op:'createGame',      desc:'Creeaza partida',          body:'{"whitePlayerId":"player_001","blackPlayerId":"player_002","powerSpawnInterval":3}' },
+  { group: 'Games',   method:'DELETE', path:'/games/{gameId}',                       op:'deleteGame',      desc:'Sterge partida',           params:['gameId'] },
+  { group: 'Board',   method:'GET',    path:'/games/{gameId}/board',                 op:'getBoard',        desc:'Starea tablei',            params:['gameId'], special:'board' },
+  { group: 'Pieces',  method:'GET',    path:'/games/{gameId}/pieces',                op:'listPieces',      desc:'Lista piese',              params:['gameId'], query:[{k:'color',v:'white',hint:'white|black'}], special:'pieces' },
+  { group: 'Pieces',  method:'GET',    path:'/games/{gameId}/pieces/{pieceId}',      op:'getPiece',        desc:'Detalii piesa',            params:['gameId','pieceId'] },
+  { group: 'Pieces',  method:'PUT',    path:'/games/{gameId}/pieces/{pieceId}',      op:'updatePiece',     desc:'Promoveaza pion',          params:['gameId','pieceId'], body:'{"type":"queen"}' },
+  { group: 'Moves',   method:'GET',    path:'/games/{gameId}/moves',                 op:'getMoves',        desc:'Istoric mutari',           params:['gameId'] },
+  { group: 'Moves',   method:'POST',   path:'/games/{gameId}/moves',                 op:'makeMove',        desc:'Efectueaza mutare',        params:['gameId'], body:'{"playerId":"player_001","pieceId":"wP1","to":{"row":3,"col":1,"notation":"a3"}}' },
+  { group: 'Moves',   method:'GET',    path:'/games/{gameId}/moves/valid',           op:'getValidMoves',   desc:'Mutari valide',            params:['gameId'], query:[{k:'pieceId',v:'wP4',hint:'ID piesa'}] },
+  { group: 'Powers',  method:'GET',    path:'/games/{gameId}/powers',                op:'listPowers',      desc:'Puteri active',            params:['gameId'] },
+  { group: 'Powers',  method:'POST',   path:'/games/{gameId}/powers/spawn',          op:'spawnPower',      desc:'Genereaza putere',         params:['gameId'] },
+  { group: 'Powers',  method:'POST',   path:'/games/{gameId}/powers/{powerId}/collect', op:'collectPower', desc:'Colecteaza putere',        params:['gameId','powerId'], body:'{"pieceId":"wP4"}' },
+  { group: 'Powers',  method:'POST',   path:'/games/{gameId}/powers/{powerId}/use',  op:'usePower',        desc:'Foloseste putere',         params:['gameId','powerId'], body:'{"pieceId":"wP4","targetPosition":{"row":5,"col":5,"notation":"e5"}}' },
+];
+
+const PIECES_MAP = { king:'♚', queen:'♛', rook:'♜', bishop:'♝', knight:'♞', pawn:'♟' };
+const DEFAULT_VALS = { gameId:'game_001', playerId:'player_001', pieceId:'wP4', powerId:'power_001' };
+
+let activeIdx = -1;
+
+// ── BUILD SIDEBAR ─────────────────────────────────────────────
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  let lastGroup = '';
+  endpoints.forEach((ep, i) => {
+    if (ep.group !== lastGroup) {
+      lastGroup = ep.group;
+      const sec = document.createElement('div');
+      sec.className = 'sidebar-section';
+      sec.innerHTML = `<div class="sidebar-title">${ep.group}</div>`;
+      sidebar.appendChild(sec);
+    }
+    const btn = document.createElement('button');
+    btn.className = 'endpoint-btn';
+    btn.id = `ep-btn-${i}`;
+    btn.innerHTML = `<span class="method ${ep.method}">${ep.method}</span><span>${ep.desc}</span>`;
+    btn.onclick = () => selectEndpoint(i);
+    sidebar.appendChild(btn);
+  });
+}
+
+// ── SELECT ENDPOINT ───────────────────────────────────────────
+function selectEndpoint(i) {
+  if (activeIdx >= 0) document.getElementById(`ep-btn-${activeIdx}`)?.classList.remove('active');
+  activeIdx = i;
+  document.getElementById(`ep-btn-${i}`).classList.add('active');
+  const ep = endpoints[i];
+  document.getElementById('current-op').textContent = ep.op;
+  renderRequestPanel(ep);
+}
+
+function fillPath(path, vals) {
+  return path.replace(/\{(\w+)\}/g, (_, k) => vals[k] || DEFAULT_VALS[k] || `{${k}}`);
+}
+
+// ── RENDER REQUEST PANEL ──────────────────────────────────────
+function renderRequestPanel(ep) {
+  const panel = document.getElementById('request-body-panel');
+  const paramVals = {};
+  (ep.params||[]).forEach(p => paramVals[p] = DEFAULT_VALS[p]||'');
+
+  let html = `<div class="url-bar">
+    <span class="method-tag ${ep.method}">${ep.method}</span>
+    <input class="url-input" id="url-display" value="${BASE}${fillPath(ep.path, paramVals)}" readonly>
+    <button class="send-btn" id="send-btn" onclick="sendRequest()">Send</button>
+  </div>`;
+
+  // path params
+  if (ep.params && ep.params.length) {
+    html += `<div class="section-title">Path Parameters</div>`;
+    ep.params.forEach(p => {
+      html += `<div class="field-group">
+        <div class="field-label">${p}</div>
+        <input class="field-input" id="param-${p}" value="${DEFAULT_VALS[p]||''}" oninput="updateUrl()">
+      </div>`;
+    });
+  }
+
+  // query params
+  if (ep.query && ep.query.length) {
+    html += `<div class="section-title">Query Parameters</div>`;
+    ep.query.forEach(q => {
+      html += `<div class="field-group">
+        <div class="field-label">${q.k} <span style="color:#4b5563">(${q.hint})</span></div>
+        <input class="field-input" id="query-${q.k}" value="${q.v}" oninput="updateUrl()">
+      </div>`;
+    });
+  }
+
+  // body
+  if (ep.body) {
+    html += `<div class="section-title">Request Body (JSON)</div>
+    <textarea class="field-input" id="body-input" rows="5">${ep.body}</textarea>`;
+  }
+
+  // info
+  html += `<div class="info-box" style="margin-top:14px">
+    <strong>${ep.method} ${ep.path}</strong><br>
+    ${ep.desc}
+  </div>`;
+
+  panel.innerHTML = html;
+  updateUrl();
+}
+
+function updateUrl() {
+  const ep = endpoints[activeIdx];
+  if (!ep) return;
+  const paramVals = {};
+  (ep.params||[]).forEach(p => { const el = document.getElementById(`param-${p}`); if(el) paramVals[p] = el.value; });
+  let url = BASE + fillPath(ep.path, paramVals);
+  const qparts = [];
+  (ep.query||[]).forEach(q => { const el = document.getElementById(`query-${q.k}`); if(el&&el.value) qparts.push(`${q.k}=${encodeURIComponent(el.value)}`); });
+  if (qparts.length) url += '?' + qparts.join('&');
+  const el = document.getElementById('url-display');
+  if (el) el.value = url;
+}
+
+// ── SEND REQUEST ──────────────────────────────────────────────
+async function sendRequest() {
+  const ep = endpoints[activeIdx];
+  if (!ep) return;
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.textContent = '...';
+  document.getElementById('response-body-panel').innerHTML = '<div class="loading">Trimitere request...</div>';
+  document.getElementById('status-badge').innerHTML = '';
+
+  const url = document.getElementById('url-display').value;
+  const opts = { method: ep.method, headers: { 'Content-Type': 'application/json' } };
+  const bodyEl = document.getElementById('body-input');
+  if (bodyEl) { try { opts.body = bodyEl.value; } catch(e){} }
+
+  try {
+    const res = await fetch(url, opts);
+    const statusClass = res.status < 300 ? 'status-2xx' : res.status < 500 ? 'status-4xx' : 'status-5xx';
+    document.getElementById('status-badge').innerHTML = `<span class="status-badge ${statusClass}">${res.status} ${res.statusText}</span>`;
+
+    if (res.status === 204) {
+      renderResponse({ message: 'No Content — operatia a reusit' }, ep);
+    } else {
+      const data = await res.json();
+      renderResponse(data, ep);
+    }
+  } catch(e) {
+    document.getElementById('response-body-panel').innerHTML = `<div class="error-msg">Eroare: ${e.message}<br><br>Asigura-te ca serverul PHP ruleaza:<br><code>C:\\php\\php.exe -S localhost:8080 -t public</code></div>`;
+    document.getElementById('status-badge').innerHTML = '<span class="status-badge status-5xx">ERR</span>';
+  }
+  btn.disabled = false; btn.textContent = 'Send';
+}
+
+// ── RENDER RESPONSE ───────────────────────────────────────────
+function renderResponse(data, ep) {
+  const panel = document.getElementById('response-body-panel');
+  let html = '';
+
+  // Special board rendering
+  if (ep.special === 'board' && data.cells) {
+    html += `<div class="tabs">
+      <button class="tab active" onclick="switchTab(this,'tab-board')">Tabla</button>
+      <button class="tab" onclick="switchTab(this,'tab-json')">JSON</button>
+    </div>`;
+    html += `<div id="tab-board">${renderBoard(data)}</div>`;
+    html += `<div id="tab-json" style="display:none"><pre>${syntaxHighlight(JSON.stringify(data,null,2))}</pre></div>`;
+  }
+  // Special pieces rendering
+  else if (ep.special === 'pieces' && Array.isArray(data)) {
+    html += `<div class="tabs">
+      <button class="tab active" onclick="switchTab(this,'tab-pieces')">Piese</button>
+      <button class="tab" onclick="switchTab(this,'tab-json')">JSON</button>
+    </div>`;
+    html += `<div id="tab-pieces">${renderPieces(data)}</div>`;
+    html += `<div id="tab-json" style="display:none"><pre>${syntaxHighlight(JSON.stringify(data,null,2))}</pre></div>`;
+  }
+  else {
+    html += `<pre>${syntaxHighlight(JSON.stringify(data,null,2))}</pre>`;
+  }
+
+  panel.innerHTML = html;
+}
+
+function switchTab(btn, showId) {
+  document.getElementById('response-body-panel').querySelectorAll('[id^="tab-"]').forEach(el => el.style.display='none');
+  btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(showId).style.display = '';
+  btn.classList.add('active');
+}
+
+function renderBoard(data) {
+  const pieceMap = {}, powerMap = {};
+  data.cells.forEach(cell => {
+    if (cell.piece) pieceMap[`${cell.position.row},${cell.position.col}`] = cell.piece;
+    if (cell.power) powerMap[`${cell.position.row},${cell.position.col}`] = cell.power;
+  });
+  let html = '<div class="board-container">';
+  html += '<div class="board-row"><div class="board-row-label"></div>';
+  for (let c=1;c<=8;c++) html += `<div class="board-label">${String.fromCharCode(96+c)}</div>`;
+  html += '</div>';
+  for (let row=8;row>=1;row--) {
+    html += `<div class="board-row"><div class="board-row-label">${row}</div>`;
+    for (let col=1;col<=8;col++) {
+      const light = (row+col)%2===0;
+      const piece = pieceMap[`${row},${col}`];
+      const hasPower = powerMap[`${row},${col}`];
+      const emoji = piece ? (piece.color==='white' ? PIECES_MAP[piece.type] : PIECES_MAP[piece.type].replace('♚','♔').replace('♛','♕').replace('♜','♖').replace('♝','♗').replace('♞','♘').replace('♟','♙')) : '';
+      const style = piece ? `color:${piece.color==='white'?'#f0f0f0':'#1a1a1a'};text-shadow:${piece.color==='white'?'0 0 2px #000':'0 0 2px #fff'};` : '';
+      html += `<div class="board-cell ${light?'light':'dark'}${hasPower?' has-power':''}" title="${piece?piece.type+' '+piece.color:''}${hasPower?' ['+hasPower.type+']':''}"><span style="${style}">${emoji}</span></div>`;
+    }
+    html += '</div>';
+  }
+  if (data.activePowers && data.activePowers.length) {
+    html += `<div style="margin-top:8px;font-size:10px;color:#9ca3af">Puteri active: `;
+    data.activePowers.forEach(p => { if(!p.isUsed) html += `<span class="tag tag-power">✦ ${p.type}</span>`; });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderPieces(pieces) {
+  const white = pieces.filter(p=>p.color==='white');
+  const black = pieces.filter(p=>p.color==='black');
+  let html = '';
+  if (white.length) {
+    html += '<div class="section-title">Alb ('+white.length+')</div><div class="pieces-grid">';
+    white.forEach(p => { html += `<div class="piece-card"><span class="pc-type">${PIECES_MAP[p.type]} ${p.type}</span><br><span class="pc-pos">${p.position.notation}</span> <span class="pc-color">#${p.id}</span></div>`; });
+    html += '</div>';
+  }
+  if (black.length) {
+    html += '<div class="section-title" style="margin-top:12px">Negru ('+black.length+')</div><div class="pieces-grid">';
+    black.forEach(p => { html += `<div class="piece-card"><span class="pc-type">${PIECES_MAP[p.type]} ${p.type}</span><br><span class="pc-pos">${p.position.notation}</span> <span class="pc-color">#${p.id}</span></div>`; });
+    html += '</div>';
+  }
+  return html || '<div class="loading">Nicio piesa activa</div>';
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+    let cls = 'json-number';
+    if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
+    else if (/true|false/.test(match)) cls = 'json-bool';
+    else if (/null/.test(match)) cls = 'json-null';
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+
+// ── SERVER STATUS CHECK ───────────────────────────────────────
+async function checkServer() {
+  const el = document.getElementById('server-status');
+  try {
+    const res = await fetch(`${BASE}/games`, {signal: AbortSignal.timeout(2000)});
+    if (res.ok) { el.textContent = '● Server online'; el.style.color = '#86efac'; }
+    else { el.textContent = '● Server error'; el.style.color = '#fca5a5'; }
+  } catch(e) {
+    el.textContent = '● Server offline'; el.style.color = '#fca5a5';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+buildSidebar();
+checkServer();
+setInterval(checkServer, 10000);
+</script>
+</body>
+</html>

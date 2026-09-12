@@ -1,0 +1,760 @@
+openapi: "3.0.1"
+info:
+  title: PowerChess API
+  description: >
+    API pentru jocul PowerChess – un joc de șah pe tabla de joc în care piesele pot colecta
+    puteri speciale ce apar aleatoriu pe tabla. Puterile modifică regulile de mișcare
+    sau oferă avantaje speciale jucătorilor.
+  version: "1.0.0"
+  contact:
+    name: Gheorghe Rares Costin
+    email: rares.gheorghe03@e-uvt.ro
+
+servers:
+  - url: https://api.powerchess.io/v1
+    description: Production server
+  - url: http://powerchess.local
+    description: Local XAMPP server (Apache)
+  - url: http://localhost:8080
+    description: Local PHP built-in server
+
+tags:
+  - name: game
+    description: Operații legate de gestionarea partidelor
+  - name: board
+    description: Starea tablei de joc
+  - name: piece
+    description: Piesele de pe tablă
+  - name: move
+    description: Mutările jucătorilor
+  - name: power
+    description: Puterile speciale care apar pe tablă
+  - name: player
+    description: Jucătorii înregistrați
+  - name: admin
+    description: Panou de administrare — vizualizare date din baza de date
+
+paths:
+#player
+  /players:
+    post:
+      tags: [player]
+      summary: Creează un jucător nou
+      operationId: createPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerCreate'
+      responses:
+        '201':
+          description: Jucător creat cu succes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /players/{playerId}:
+    get:
+      tags: [player]
+      summary: Obține detalii despre un jucător
+      operationId: getPlayer
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: Detalii jucător
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+ #game
+  /games:
+    post:
+      tags: [game]
+      summary: Creează o partidă nouă
+      operationId: createGame
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameCreate'
+      responses:
+        '201':
+          description: Partidă creată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    get:
+      tags: [game]
+      summary: Listează toate partidele active
+      operationId: listGames
+      parameters:
+        - name: status
+          in: query
+          description: Filtrare după status
+          schema:
+            type: string
+            enum: [waiting, active, finished]
+      responses:
+        '200':
+          description: Listă partide
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /games/{gameId}:
+    get:
+      tags: [game]
+      summary: Obține detalii despre o partidă
+      operationId: getGame
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Detalii partidă
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags: [game]
+      summary: Abandonează / șterge o partidă
+      operationId: deleteGame
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '204':
+          description: Partidă ștearsă
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+#Board
+  /games/{gameId}/board:
+    get:
+      tags: [board]
+      summary: Obține starea curentă a tablei de joc
+      operationId: getBoard
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Starea tablei
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  #Pieces
+  /games/{gameId}/pieces:
+    get:
+      tags: [piece]
+      summary: Listează toate piesele active de pe tablă
+      operationId: listPieces
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - name: color
+          in: query
+          description: Filtrare după culoarea jucătorului
+          schema:
+            type: string
+            enum: [white, black]
+      responses:
+        '200':
+          description: Listă piese
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Piece'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /games/{gameId}/pieces/{pieceId}:
+    get:
+      tags: [piece]
+      summary: Obține detalii despre o piesă specifică
+      operationId: getPiece
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/PieceId'
+      responses:
+        '200':
+          description: Detalii piesă
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Piece'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+ #Moves
+  /games/{gameId}/moves:
+    get:
+      tags: [move]
+      summary: Obține istoricul mutărilor din partidă
+      operationId: getMoves
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Lista mutărilor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Move'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [move]
+      summary: Efectuează o mutare
+      operationId: makeMove
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+      responses:
+        '200':
+          description: Mutare efectuată, returnează starea nouă a tablei
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Mutare invalidă (piesa nu poate ajunge acolo, nu e rândul tău, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /games/{gameId}/moves/valid:
+    get:
+      tags: [move]
+      summary: Obține lista mutărilor valide pentru o piesă
+      operationId: getValidMoves
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - name: pieceId
+          in: query
+          required: true
+          description: ID-ul piesei pentru care se calculează mutările valide
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista pozițiilor valide
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Position'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+#Powers
+  /games/{gameId}/powers:
+    get:
+      tags: [power]
+      summary: Listează puterile speciale active de pe tablă
+      operationId: listPowers
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Lista puterilor de pe tablă
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Power'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /games/{gameId}/powers/spawn:
+    post:
+      tags: [power]
+      summary: Generează o putere nouă random pe tablă (apelat intern de server)
+      operationId: spawnPower
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '201':
+          description: Putere generată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Power'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /games/{gameId}/powers/{powerId}/collect:
+    post:
+      tags: [power]
+      summary: Colectează o putere de pe tablă cu o piesă
+      operationId: collectPower
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - name: powerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pieceId]
+              properties:
+                pieceId:
+                  type: string
+                  description: ID-ul piesei care colectează puterea
+      responses:
+        '200':
+          description: Putere colectată cu succes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Power'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /games/{gameId}/powers/{powerId}/use:
+    post:
+      tags: [power]
+      summary: Folosește o putere colectată
+      operationId: usePower
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - name: powerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsePowerRequest'
+      responses:
+        '200':
+          description: Putere folosită, returnează efectul aplicat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerEffect'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+#Game Components
+#Admin
+  /admin:
+    get:
+      tags: [admin]
+      summary: Panou de administrare
+      operationId: getAdminPanel
+      description: >
+        Pagina HTML de administrare care afișează statistici și date din baza de date.
+        Returnează HTML, nu JSON. Accesibilă la /admin.php pe serverul local.
+      responses:
+        '200':
+          description: Pagina HTML a panoului de administrare
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+
+  parameters:
+    GameId:
+      name: gameId
+      in: path
+      required: true
+      description: ID-ul unic al partidei
+      schema:
+        type: string
+
+    PlayerId:
+      name: playerId
+      in: path
+      required: true
+      description: ID-ul unic al jucătorului
+      schema:
+        type: string
+
+    PieceId:
+      name: pieceId
+      in: path
+      required: true
+      description: ID-ul unic al piesei
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Date de intrare invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resursa nu a fost găsită
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Eroare internă de server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+
+    Position:
+      type: object
+      description: O celulă pe tabla de șah (ex. e4)
+      required: [row, col]
+      properties:
+        row:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: Rândul (1-8)
+        col:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: Coloana (1-8, corespunzător a-h)
+        notation:
+          type: string
+          example: "e4"
+          description: Notație algebrică standard
+
+    PlayerCreate:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        email:
+          type: string
+          format: email
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        gamesPlayed:
+          type: integer
+        wins:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    GameCreate:
+      type: object
+      required: [whitePlayerId, blackPlayerId]
+      properties:
+        whitePlayerId:
+          type: string
+        blackPlayerId:
+          type: string
+        powerSpawnInterval:
+          type: integer
+          description: Numărul de ture între generările de puteri (implicit 3)
+          default: 3
+
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+        whitePlayerId:
+          type: string
+        blackPlayerId:
+          type: string
+        status:
+          type: string
+          enum: [waiting, active, finished]
+        currentTurn:
+          type: string
+          enum: [white, black]
+        winner:
+          type: string
+          nullable: true
+          enum: [white, black]
+        turnNumber:
+          type: integer
+        powerSpawnInterval:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Board:
+      type: object
+      properties:
+        gameId:
+          type: string
+        cells:
+          type: array
+          description: Tabla 8x8 ca array de celule
+          items:
+            $ref: '#/components/schemas/Cell'
+        activePowers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Power'
+
+    Cell:
+      type: object
+      properties:
+        position:
+          $ref: '#/components/schemas/Position'
+        piece:
+          $ref: '#/components/schemas/Piece'
+          nullable: true
+        power:
+          $ref: '#/components/schemas/Power'
+          nullable: true
+
+    Piece:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [king, queen, rook, bishop, knight, pawn]
+        color:
+          type: string
+          enum: [white, black]
+        position:
+          $ref: '#/components/schemas/Position'
+        activePowers:
+          type: array
+          description: Puterile colectate de această piesă
+          items:
+            $ref: '#/components/schemas/Power'
+        isAlive:
+          type: boolean
+
+    MoveRequest:
+      type: object
+      required: [playerId, pieceId, to]
+      properties:
+        playerId:
+          type: string
+        pieceId:
+          type: string
+        to:
+          $ref: '#/components/schemas/Position'
+        usePowerId:
+          type: string
+          nullable: true
+          description: Dacă jucătorul dorește să folosească o putere în această tură
+
+    Move:
+      type: object
+      properties:
+        id:
+          type: string
+        gameId:
+          type: string
+        playerId:
+          type: string
+        pieceId:
+          type: string
+        from:
+          $ref: '#/components/schemas/Position'
+        to:
+          $ref: '#/components/schemas/Position'
+        capturedPieceId:
+          type: string
+          nullable: true
+        powerCollected:
+          $ref: '#/components/schemas/Power'
+          nullable: true
+        powerUsed:
+          $ref: '#/components/schemas/Power'
+          nullable: true
+        turnNumber:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    MoveResult:
+      type: object
+      properties:
+        move:
+          $ref: '#/components/schemas/Move'
+        board:
+          $ref: '#/components/schemas/Board'
+        gameStatus:
+          type: string
+          enum: [active, check, checkmate, stalemate, finished]
+        newPowerSpawned:
+          $ref: '#/components/schemas/Power'
+          nullable: true
+
+    PowerType:
+      type: string
+      enum:
+        - teleport
+        - extra_move
+        - shield
+        - freeze
+        - double_jump
+        - rule_break
+      description: >
+        Tipurile de puteri disponibile:
+        - teleport: mută piesa în orice celulă liberă de pe tablă
+        - extra_move: permite o mutare suplimentară în aceeași tură
+        - shield: protejează piesa de o captură (o singură dată)
+        - freeze: îngheață o piesă adversă timp de un tur
+        - double_jump: permite sărirea peste piese (ca un cal) o singură dată
+        - rule_break: permite o mutare ilegală standard (ex. regină se poate mișca ca un cal)
+
+    Power:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/PowerType'
+        position:
+          $ref: '#/components/schemas/Position'
+          nullable: true
+          description: Poziția pe tablă dacă nu a fost colectată
+        collectedByPieceId:
+          type: string
+          nullable: true
+        isUsed:
+          type: boolean
+        spawnedOnTurn:
+          type: integer
+
+    UsePowerRequest:
+      type: object
+      required: [pieceId]
+      properties:
+        pieceId:
+          type: string
+          description: Piesa care folosește puterea
+        targetPosition:
+          $ref: '#/components/schemas/Position'
+          description: Poziția țintă (necesară pentru teleport, freeze etc.)
+        targetPieceId:
+          type: string
+          nullable: true
+          description: Piesa adversă vizată (necesară pentru freeze)
+
+    PowerEffect:
+      type: object
+      properties:
+        powerId:
+          type: string
+        type:
+          $ref: '#/components/schemas/PowerType'
+        description:
+          type: string
+        affectedPieceId:
+          type: string
+        board:
+          $ref: '#/components/schemas/Board'

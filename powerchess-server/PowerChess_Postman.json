@@ -1,0 +1,199 @@
+{
+  "info": {
+    "name": "PowerChess API",
+    "description": "Colectie Postman pentru testarea PowerChess REST API",
+    "_postman_id": "powerchess-collection-v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "gameId",  "value": "game_001",              "type": "string" },
+    { "key": "playerId","value": "player_001",             "type": "string" },
+    { "key": "pieceId", "value": "piece_001",              "type": "string" },
+    { "key": "powerId", "value": "power_001",              "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "POST /players - Creeaza jucator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/players", "host": ["{{baseUrl}}"], "path": ["players"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"rares_gheorghe\",\n  \"email\": \"rares@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /players/:playerId - Detalii jucator",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/players/{{playerId}}", "host": ["{{baseUrl}}"], "path": ["players","{{playerId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Games",
+      "item": [
+        {
+          "name": "POST /games - Creeaza partida",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/games", "host": ["{{baseUrl}}"], "path": ["games"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"whitePlayerId\": \"player_001\",\n  \"blackPlayerId\": \"player_002\",\n  \"powerSpawnInterval\": 3\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /games - Lista partide",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/games?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["games"],
+              "query": [{ "key": "status", "value": "active" }]
+            }
+          }
+        },
+        {
+          "name": "GET /games/:gameId - Detalii partida",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}"] }
+          }
+        },
+        {
+          "name": "DELETE /games/:gameId - Sterge partida",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Board",
+      "item": [
+        {
+          "name": "GET /games/:gameId/board - Starea tablei",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/board", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","board"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pieces",
+      "item": [
+        {
+          "name": "GET /games/:gameId/pieces - Lista piese",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/games/{{gameId}}/pieces?color=white",
+              "host": ["{{baseUrl}}"],
+              "path": ["games","{{gameId}}","pieces"],
+              "query": [{ "key": "color", "value": "white" }]
+            }
+          }
+        },
+        {
+          "name": "GET /games/:gameId/pieces/:pieceId - Detalii piesa",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/pieces/{{pieceId}}", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","pieces","{{pieceId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Moves",
+      "item": [
+        {
+          "name": "GET /games/:gameId/moves - Istoric mutari",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/moves", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","moves"] }
+          }
+        },
+        {
+          "name": "POST /games/:gameId/moves - Efectueaza mutare",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/moves", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","moves"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"player_001\",\n  \"pieceId\": \"piece_001\",\n  \"to\": {\n    \"row\": 4,\n    \"col\": 5,\n    \"notation\": \"e4\"\n  },\n  \"usePowerId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /games/:gameId/moves/valid - Mutari valide",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/games/{{gameId}}/moves/valid?pieceId={{pieceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["games","{{gameId}}","moves","valid"],
+              "query": [{ "key": "pieceId", "value": "{{pieceId}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Powers",
+      "item": [
+        {
+          "name": "GET /games/:gameId/powers - Puteri active",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/powers", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","powers"] }
+          }
+        },
+        {
+          "name": "POST /games/:gameId/powers/spawn - Genereaza putere",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/powers/spawn", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","powers","spawn"] }
+          }
+        },
+        {
+          "name": "POST /games/:gameId/powers/:powerId/collect - Colecteaza putere",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/powers/{{powerId}}/collect", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","powers","{{powerId}}","collect"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pieceId\": \"piece_001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /games/:gameId/powers/:powerId/use - Foloseste putere",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/games/{{gameId}}/powers/{{powerId}}/use", "host": ["{{baseUrl}}"], "path": ["games","{{gameId}}","powers","{{powerId}}","use"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pieceId\": \"piece_001\",\n  \"targetPosition\": {\n    \"row\": 5,\n    \"col\": 3,\n    \"notation\": \"c5\"\n  },\n  \"targetPieceId\": null\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
