@@ -119,14 +119,14 @@ Access: `http://localhost:8080`
 
 #Special Powers (PowerType)
 
-| Power         | Effect                                            |
-| ------------- | ------------------------------------------------- |
-| `teleport`    | Moves a piece to any unoccupied cell on the board |
-| `extra_move`  | Allows an additional move during the same turn    |
-| `shield`      | Protects a piece from being captured once         |
-| `freeze`      | Freezes an opponent's piece for one turn          |
-| `double_jump` | Allows jumping over pieces (like a knight)        |
-| `rule_break`  | Allows a move that would normally be illegal      |
+| Power         | Effect                                            | Status                |
+| ------------- | ------------------------------------------------- | --------------------- |
+| `teleport`    | Moves a piece to any unoccupied cell on the board | Implemented           |
+| `shield`      | Protects a piece from being captured once         | Implemented           |
+| `freeze`      | Freezes an opponent's piece for one turn          | Implemented           |
+| `extra_move`  | Allows an additional move during the same turn    | **Under Development** |
+| `double_jump` | Allows jumping over pieces (like a knight)        | **Under Development** |
+| `rule_break`  | Allows a move that would normally be illegal      | **Under Development** |
 
 #Postman Testing
 
@@ -154,7 +154,3 @@ Access `http://powerchess.local/admin.php` to view:
 The complete OpenAPI 3.0.1 specification can be found in the `powerchess-openapi.yaml` file.
 
 It can be viewed interactively at [Swagger Editor](https://editor.swagger.io) by importing the file.
-
-
-OpenAPI 3.0.1
-
